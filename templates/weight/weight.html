@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Peso - Fasting Life{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="display-5">
+            <i class="bi bi-graph-up"></i> Controle de Peso
+        </h1>
+        <p class="text-muted">Registre seu peso mensalmente</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-plus-circle"></i> Registrar Peso
+                </h5>
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.weight.id_for_label }}" class="form-label">Peso (kg)</label>
+                        {{ form.weight }}
+                        {% if form.weight.errors %}
+                            <div class="text-danger small">{{ form.weight.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.reference_month.id_for_label }}" class="form-label">Mês de Referência</label>
+                        {{ form.reference_month }}
+                        {% if form.reference_month.errors %}
+                            <div class="text-danger small">{{ form.reference_month.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check-circle"></i> Registrar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-list-ul"></i> Histórico de Peso
+                </h5>
+                
+                {% if weights %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Mês</th>
+                                <th>Peso</th>
+                                <th>Variação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for weight in weights %}
+                            <tr>
+                                <td>{{ weight.reference_month }}</td>
+                                <td><strong>{{ weight.weight }} kg</strong></td>
+                                <td>
+                                    {% if forloop.counter < weights|length %}
+                                        {% with next_weight=weights|slice:forloop.counter|first %}
+                                            {% if weight.weight < next_weight.weight %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-arrow-down"></i> -{{ next_weight.weight|floatformat:1|add:"-"|add:weight.weight|floatformat:1 }} kg
+                                                </span>
+                                            {% elif weight.weight > next_weight.weight %}
+                                                <span class="badge bg-danger">
+                                                    <i class="bi bi-arrow-up"></i> +{{ weight.weight|floatformat:1|add:"-"|add:next_weight.weight|floatformat:1 }} kg
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-dash"></i> 0 kg
+                                                </span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Nenhum registro de peso encontrado. Registre seu primeiro peso!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

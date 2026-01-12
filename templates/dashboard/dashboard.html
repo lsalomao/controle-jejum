@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Fasting Life{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="display-5">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </h1>
+        <p class="text-muted">Bem-vindo, {{ user.name }}!</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-clock"></i> Status Atual
+                </h5>
+                {% if active_fasting %}
+                    <div class="alert alert-success">
+                        <h4><i class="bi bi-hourglass-split"></i> Jejum em Andamento</h4>
+                        <p class="mb-2">Iniciado em: {{ active_fasting.start_time|date:"d/m/Y H:i" }}</p>
+                        <p class="mb-0" id="fastingTimer">Calculando...</p>
+                    </div>
+                    <a href="{% url 'end_fasting' %}" class="btn btn-danger w-100">
+                        <i class="bi bi-stop-circle"></i> Encerrar Jejum
+                    </a>
+                {% else %}
+                    <div class="alert alert-info">
+                        <h4><i class="bi bi-cup-straw"></i> Alimentado</h4>
+                        <p class="mb-0">Você não está em jejum no momento</p>
+                    </div>
+                    <form method="post" action="{% url 'start_fasting' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-play-circle"></i> Iniciar Jejum
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-bar-chart"></i> Estatísticas (7 dias)
+                </h5>
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="stat-box">
+                            <h3 class="text-primary">{{ avg_duration }}</h3>
+                            <small class="text-muted">Média (h)</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-box">
+                            <h3 class="text-success">{{ days_above_goal }}</h3>
+                            <small class="text-muted">Dias na Meta</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-box">
+                            <h3 class="text-warning">{{ streak }}</h3>
+                            <small class="text-muted">Sequência</small>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <p class="mb-0 text-center">
+                    <i class="bi bi-bullseye"></i> Meta: <strong>{{ goal_hours }}h</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-graph-up"></i> Duração do Jejum (Últimos 7 dias)
+                </h5>
+                <canvas id="fastingChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if active_fasting %}
+<script>
+    const startTime = new Date("{{ active_fasting.start_time|date:'c' }}");
+
+    function updateTimer() {
+        const now = new Date();
+        const diff = now - startTime;
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+
+        document.getElementById('fastingTimer').innerHTML =
+            `<strong>Tempo decorrido: ${hours}h ${minutes}m ${seconds}s</strong>`;
+    }
+
+    updateTimer();
+    setInterval(updateTimer, 1000);
+</script>
+{% endif %}
+
+<script>
+    const ctx = document.getElementById('fastingChart').getContext('2d');
+    const chartData = JSON.parse('{{ chart_data|escapejs }}');
+
+    if (chartData && chartData.length > 0) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartData.map(d => d.date),
+                datasets: [{
+                    label: 'Horas de Jejum',
+                    data: chartData.map(d => d.hours),
+                    backgroundColor: 'rgba(255, 127, 80, 0.6)',
+                    borderColor: 'rgba(255, 127, 80, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Horas'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    } else {
+        console.warn('Nenhum dado disponível para o gráfico de jejum');
+    }
+</script>
+{% endblock %}

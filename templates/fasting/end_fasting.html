@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Encerrar Jejum{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h3 class="card-title mb-4">
+                    <i class="bi bi-stop-circle"></i> Encerrar Jejum
+                </h3>
+
+                <div class="alert alert-info">
+                    <strong>Jejum iniciado em:</strong> {{ active_fasting.start_time|date:"d/m/Y H:i" }}
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="energy_level" class="form-label">
+                            <i class="bi bi-lightning-charge"></i> Nível de Energia
+                        </label>
+                        <select name="energy_level" id="energy_level" class="form-select" required>
+                            <option value="">Selecione...</option>
+                            <option value="1">⭐ Baixo</option>
+                            <option value="2">⭐⭐ Médio</option>
+                            <option value="3">⭐⭐⭐ Alto</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="focus_level" class="form-label">
+                            <i class="bi bi-bullseye"></i> Nível de Foco
+                        </label>
+                        <select name="focus_level" id="focus_level" class="form-select" required>
+                            <option value="">Selecione...</option>
+                            <option value="1">⭐ Baixo</option>
+                            <option value="2">⭐⭐ Médio</option>
+                            <option value="3">⭐⭐⭐ Alto</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="mood_level" class="form-label">
+                            <i class="bi bi-emoji-smile"></i> Nível de Humor
+                        </label>
+                        <select name="mood_level" id="mood_level" class="form-select" required>
+                            <option value="">Selecione...</option>
+                            <option value="1">⭐ Baixo</option>
+                            <option value="2">⭐⭐ Médio</option>
+                            <option value="3">⭐⭐⭐ Alto</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">
+                            <i class="bi bi-journal-text"></i> Observações (opcional)
+                        </label>
+                        <textarea name="notes" id="notes" class="form-control" rows="3" maxlength="255" placeholder="Como você se sentiu durante o jejum?"></textarea>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-circle"></i> Encerrar Jejum
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
