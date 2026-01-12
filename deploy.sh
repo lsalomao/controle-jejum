@@ -38,10 +38,9 @@ if [ ! -f .env ]; then
 
     SECRET_KEY=$(openssl rand -base64 50 | tr -d '\n')
 
-    sed -i "s|DEBUG=.*|DEBUG=False|g" .env
     sed -i "s|SECRET_KEY=.*|SECRET_KEY=$SECRET_KEY|g" .env
+    sed -i "s|DEBUG=.*|DEBUG=False|g" .env
     sed -i "s|ALLOWED_HOSTS=.*|ALLOWED_HOSTS=$DOMAIN,localhost,127.0.0.1|g" .env
-    sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|g" .env
     sed -i "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$DB_PASSWORD|g" .env
     sed -i "s|CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=https://$DOMAIN|g" .env
 
@@ -51,7 +50,11 @@ else
 fi
 
 echo ""
-echo "4. Configurando Nginx (temporariamente sem SSL)..."
+echo "4. Parando containers antigos (se existirem)..."
+docker-compose down 2>/dev/null || true
+
+echo ""
+echo "5. Configurando Nginx (temporariamente sem SSL)..."
 cat > /etc/nginx/sites-available/$DOMAIN << 'EOF'
 server {
     listen 80;
