@@ -42,11 +42,17 @@ if [ ! -f .env ]; then
     sed -i "s|DEBUG=.*|DEBUG=False|g" .env
     sed -i "s|ALLOWED_HOSTS=.*|ALLOWED_HOSTS=$DOMAIN,localhost,127.0.0.1|g" .env
     sed -i "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$DB_PASSWORD|g" .env
-    sed -i "s|CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=https://$DOMAIN|g" .env
+    sed -i "s|DATABASE_URL=.*|DATABASE_URL=postgresql://fasting_user:$DB_PASSWORD@db:5432/fasting_db|g" .env
+    sed -i "s|CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=https://$DOMAIN,http://$DOMAIN|g" .env
 
     echo "Arquivo .env configurado!"
 else
-    echo "Arquivo .env já existe, pulando..."
+    echo "Arquivo .env já existe. Atualizando CSRF_TRUSTED_ORIGINS..."
+    if grep -q "^CSRF_TRUSTED_ORIGINS=" .env; then
+        sed -i "s|CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=https://$DOMAIN,http://$DOMAIN|g" .env
+    else
+        echo "CSRF_TRUSTED_ORIGINS=https://$DOMAIN,http://$DOMAIN" >> .env
+    fi
 fi
 
 echo ""
@@ -102,32 +108,31 @@ if [ -f /etc/nginx/sites-enabled/default ]; then
 fi
 
 echo ""
-echo "5. Testando configuração do Nginx..."
+echo "6. Testando configuração do Nginx..."
 nginx -t
 
 echo ""
-echo "6. Recarregando Nginx..."
+echo "7. Recarregando Nginx..."
 systemctl reload nginx
 
 echo ""
-echo "7. Iniciando containers Docker (porta 4000)..."
-docker-compose down 2>/dev/null || true
+echo "8. Iniciando containers Docker (porta 4000)..."
 docker-compose up -d --build
 
 echo ""
-echo "8. Aguardando containers iniciarem..."
-sleep 10
+echo "9. Aguardando containers iniciarem..."
+sleep 15
 
 echo ""
-echo "9. Executando migrações..."
+echo "10. Executando migrações..."
 docker-compose exec -T web python manage.py migrate
 
 echo ""
-echo "10. Coletando arquivos estáticos..."
+echo "11. Coletando arquivos estáticos..."
 docker-compose exec -T web python manage.py collectstatic --noinput
 
 echo ""
-echo "11. Copiando arquivos estáticos para Nginx..."
+echo "12. Copiando arquivos estáticos para Nginx..."
 mkdir -p $PROJECT_DIR/staticfiles
 mkdir -p $PROJECT_DIR/media
 mkdir -p /var/www/certbot
@@ -137,7 +142,7 @@ chown -R www-data:www-data $PROJECT_DIR/staticfiles
 chown -R www-data:www-data $PROJECT_DIR/media
 
 echo ""
-echo "12. Configurando SSL com Let's Encrypt..."
+echo "13. Configurando SSL com Let's Encrypt..."
 read -p "Deseja configurar SSL agora? (s/n): " SETUP_SSL
 
 if [ "$SETUP_SSL" = "s" ] || [ "$SETUP_SSL" = "S" ]; then
@@ -148,6 +153,16 @@ if [ "$SETUP_SSL" = "s" ] || [ "$SETUP_SSL" = "S" ]; then
     fi
 
     certbot --nginx -d $DOMAIN --email $EMAIL --agree-tos --non-interactive
+
+    echo ""
+    echo "14. Atualizando .env para usar HTTPS..."
+    sed -i "s|SECURE_SSL_REDIRECT=.*|SECURE_SSL_REDIRECT=True|g" .env
+    sed -i "s|SESSION_COOKIE_SECURE=.*|SESSION_COOKIE_SECURE=True|g" .env
+    sed -i "s|CSRF_COOKIE_SECURE=.*|CSRF_COOKIE_SECURE=True|g" .env
+
+    echo "Reiniciando container web..."
+    docker-compose restart web
+
     echo "SSL configurado com sucesso!"
 else
     echo "Pulando configuração SSL. Você pode configurar depois com:"
@@ -160,13 +175,15 @@ echo "Deploy concluído com sucesso!"
 echo "==================================="
 echo ""
 echo "Aplicação rodando em:"
-echo "- HTTP: http://$DOMAIN (redireciona para HTTPS)"
-echo "- HTTPS: https://$DOMAIN"
+echo "- HTTP: http://$DOMAIN"
+if [ "$SETUP_SSL" = "s" ] || [ "$SETUP_SSL" = "S" ]; then
+    echo "- HTTPS: https://$DOMAIN (redireciona automaticamente)"
+fi
 echo "- Porta interna: 4000"
 echo ""
 echo "Próximos passos:"
 echo "1. Criar superusuário: docker-compose exec web python manage.py createsuperuser"
-echo "2. Acessar: https://$DOMAIN"
+echo "2. Acessar: http://$DOMAIN"
 echo ""
 echo "Comandos úteis:"
 echo "- Ver logs: docker-compose logs -f"

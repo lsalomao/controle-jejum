@@ -16,6 +16,6 @@ COPY . .
 
 RUN python manage.py collectstatic --noinput
 
-EXPOSE 8000
+EXPOSE 4000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "fasting_life.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:4000", "--workers", "3", "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info", "fasting_life.wsgi:application"]
