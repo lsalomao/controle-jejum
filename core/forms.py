@@ -63,6 +63,17 @@ class FastingRecordForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'maxlength': 255}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            from django.utils import timezone
+            if self.instance.start_time:
+                local_start = timezone.localtime(self.instance.start_time)
+                self.initial['start_time'] = local_start.strftime('%Y-%m-%dT%H:%M')
+            if self.instance.end_time:
+                local_end = timezone.localtime(self.instance.end_time)
+                self.initial['end_time'] = local_end.strftime('%Y-%m-%dT%H:%M')
+
 
 class WeightRecordForm(forms.ModelForm):
     class Meta:
